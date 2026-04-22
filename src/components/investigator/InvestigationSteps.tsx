@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { Loader2, Check } from "lucide-react";
 
 const STEPS = [
   "Resolving DNS records",
   "Fetching WHOIS history",
   "Analyzing SSL certificate",
   "Cross-referencing threat intel",
-  "Compiling forensic report",
+  "Compiling report",
 ];
 
 interface Props {
@@ -21,39 +20,36 @@ export const InvestigationSteps = ({ onComplete }: Props) => {
       onComplete();
       return;
     }
-    const t = setTimeout(() => setActive((a) => a + 1), 700 + Math.random() * 500);
+    const t = setTimeout(() => setActive((a) => a + 1), 650 + Math.random() * 400);
     return () => clearTimeout(t);
   }, [active, onComplete]);
 
   return (
-    <div className="bg-gradient-card border border-primary/30 rounded-2xl p-4 space-y-2 scanline animate-slide-up">
-      <div className="text-xs font-mono text-primary/80 mb-2 tracking-widest">
-        ▸ INVESTIGATION IN PROGRESS
+    <div className="animate-slide-up py-2">
+      <div className="text-[10px] font-mono tracking-[0.2em] text-muted-foreground mb-3 uppercase">
+        Investigating
       </div>
-      {STEPS.map((s, i) => {
-        const done = i < active;
-        const running = i === active;
-        return (
-          <div
-            key={s}
-            className={`flex items-center gap-2 font-mono text-sm transition-opacity ${
-              i > active ? "opacity-30" : "opacity-100"
-            }`}
-          >
-            {done ? (
-              <Check className="h-4 w-4 text-success" />
-            ) : running ? (
-              <Loader2 className="h-4 w-4 text-primary animate-spin" />
-            ) : (
-              <div className="h-4 w-4 rounded-full border border-muted-foreground/30" />
-            )}
-            <span className={done ? "text-success" : running ? "text-primary text-glow-cyan" : "text-muted-foreground"}>
-              {s}
-              {running && "..."}
-            </span>
-          </div>
-        );
-      })}
+      <div className="space-y-1.5">
+        {STEPS.map((s, i) => {
+          const done = i < active;
+          const running = i === active;
+          return (
+            <div
+              key={s}
+              className={`flex items-center gap-3 font-mono text-xs transition-opacity duration-300 ${
+                i > active ? "opacity-25" : "opacity-100"
+              }`}
+            >
+              <span className={`inline-block h-1 w-1 rounded-full ${
+                done ? "bg-foreground" : running ? "bg-foreground animate-pulse" : "bg-muted-foreground/30"
+              }`} />
+              <span className={done ? "text-muted-foreground line-through decoration-1" : running ? "text-foreground" : "text-muted-foreground"}>
+                {s}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
