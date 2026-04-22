@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@layer base {
+  :root {
+    /* Minimal warm-neutral palette */
+    --background: 40 20% 97%;
+    --foreground: 30 8% 12%;
+
+    --card: 40 25% 99%;
+    --card-foreground: 30 8% 12%;
+
+    --popover: 40 25% 99%;
+    --popover-foreground: 30 8% 12%;
+
+    --primary: 30 8% 12%;
+    --primary-foreground: 40 20% 97%;
+
+    --secondary: 30 10% 92%;
+    --secondary-foreground: 30 8% 12%;
+
+    --muted: 30 10% 94%;
+    --muted-foreground: 30 6% 45%;
+
+    --accent: 30 10% 92%;
+    --accent-foreground: 30 8% 12%;
+
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 40 20% 97%;
+
+    --success: 145 35% 38%;
+    --warning: 35 70% 45%;
+
+    --border: 30 10% 88%;
+    --input: 30 10% 90%;
+    --ring: 30 8% 25%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 40 20% 97%;
+    --sidebar-foreground: 30 8% 12%;
+    --sidebar-primary: 30 8% 12%;
+    --sidebar-primary-foreground: 40 20% 97%;
+    --sidebar-accent: 30 10% 92%;
+    --sidebar-accent-foreground: 30 8% 12%;
+    --sidebar-border: 30 10% 88%;
+    --sidebar-ring: 30 8% 25%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html, body, #root {
+    @apply h-full;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+}
+
+@layer utilities {
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+  .font-serif { font-family: 'Instrument Serif', serif; font-weight: 400; }
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+.cursor-blink::after {
+  content: '▍';
+  margin-left: 2px;
+  animation: blink 1.1s steps(1) infinite;
+  color: hsl(var(--muted-foreground));
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up { animation: slide-up 0.3s ease-out both; }
