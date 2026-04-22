@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 
 const TRACK_URL =
   "https://cdn.pixabay.com/download/audio/2022/03/15/audio_1718e0d3a8.mp3?filename=cyberpunk-future-bass-22678.mp3";
 
-export const MusicToggle = () => {
+export const MusicToggle = forwardRef<HTMLButtonElement>((_props, ref) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [on, setOn] = useState(false);
 
@@ -33,6 +33,7 @@ export const MusicToggle = () => {
 
   return (
     <button
+      ref={ref}
       onClick={toggle}
       aria-label={on ? "Mute ambient music" : "Play ambient music"}
       className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
@@ -40,4 +41,5 @@ export const MusicToggle = () => {
       {on ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
     </button>
   );
-};
+});
+MusicToggle.displayName = "MusicToggle";

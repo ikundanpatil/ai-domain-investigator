@@ -1,6 +1,5 @@
-// Edge function: streaming AI cyber-detective investigator using Claude.
+// Edge function: streaming AI domain detective via Lovable AI Gateway.
 // Hybrid data: real DNS via Google DoH + AI-narrated WHOIS/SSL/threat findings.
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,17 +41,17 @@ async function gatherDnsContext(domain: string) {
   return { a, aaaa, mx, ns, txt };
 }
 
-const SYSTEM_PROMPT = `You are NEON, an elite cybersecurity detective AI. You speak like a sharp, slightly witty noir investigator texting a friend — never robotic, never corporate.
+const SYSTEM_PROMPT = `You are the Detective, a calm, sharp domain forensics AI. You speak like a quietly confident investigator — minimal, precise, never robotic or corporate.
 
 RULES:
-- Keep responses tight (4–8 sentences usually). No bullet lists unless absolutely needed.
-- Reveal findings conversationally, like you just dug them up. Reference real data when provided.
-- Use occasional emoji sparingly: ✓ for safe, ⚠️ for caution, ✗ for danger.
+- Keep responses tight (3–6 sentences). No bullet lists unless absolutely needed.
+- Reveal findings conversationally, referencing real data when provided.
+- Use ✓ for safe, ⚠ for caution, ✗ for danger — sparingly.
 - For legit domains: be reassuring and specific.
-- For sketchy domains (typosquats, very new, no MX, suspicious NS): warn naturally and explain WHY.
-- Always end with a short follow-up question to keep the investigation going.
-- If user asks something not domain-related, gently steer them back: "I'm built for domain forensics — give me one to dig into."
-- Never output JSON or code blocks. Plain prose only.`;
+- For sketchy domains (typosquats, very new, no MX, suspicious NS): explain WHY clearly.
+- End with one short follow-up question.
+- If user asks something not domain-related, gently steer them back.
+- Plain prose only. No JSON, no code blocks.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -68,15 +67,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
+        JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Pull domain from latest user message and fetch real DNS as evidence.
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     const domain = lastUser ? extractDomain(lastUser.content) : null;
     let evidence = "";
@@ -91,35 +89,46 @@ TXT: ${dns.txt?.slice(0, 3).join(" | ") || "none"}
 Use these to ground your investigation. Infer registrar/age plausibly from NS patterns.`;
     }
 
-    const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 600,
+        model: "google/gemini-2.5-flash",
         stream: true,
-        system: SYSTEM_PROMPT + evidence,
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT + evidence },
+          ...messages.map((m) => ({ role: m.role, content: m.content })),
+        ],
       }),
     });
 
-    if (!anthropicResp.ok || !anthropicResp.body) {
-      const t = await anthropicResp.text();
-      console.error("Anthropic error", anthropicResp.status, t);
+    if (!aiResp.ok || !aiResp.body) {
+      const t = await aiResp.text();
+      console.error("AI gateway error", aiResp.status, t);
+      if (aiResp.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded — try again shortly." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (aiResp.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI credits exhausted. Add credits in Lovable Cloud settings." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       return new Response(
-        JSON.stringify({ error: `Anthropic ${anthropicResp.status}` }),
+        JSON.stringify({ error: `AI gateway ${aiResp.status}` }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Convert Anthropic SSE -> simple text stream of token deltas.
     const stream = new ReadableStream({
       async start(controller) {
-        const reader = anthropicResp.body!.getReader();
+        const reader = aiResp.body!.getReader();
         const decoder = new TextDecoder();
         const encoder = new TextEncoder();
         let buf = "";
@@ -134,15 +143,11 @@ Use these to ground your investigation. Infer registrar/age plausibly from NS pa
               buf = buf.slice(idx + 1);
               if (!line.startsWith("data:")) continue;
               const payload = line.slice(5).trim();
+              if (payload === "[DONE]") continue;
               try {
                 const j = JSON.parse(payload);
-                if (
-                  j.type === "content_block_delta" &&
-                  j.delta?.type === "text_delta" &&
-                  j.delta.text
-                ) {
-                  controller.enqueue(encoder.encode(j.delta.text));
-                }
+                const delta = j.choices?.[0]?.delta?.content;
+                if (delta) controller.enqueue(encoder.encode(delta));
               } catch { /* ignore */ }
             }
           }
